@@ -132,6 +132,28 @@ export default function Home() {
     }
   }
 
+  // Temporary test function for match.js
+  async function testMatchCron() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/match", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": "Bearer UEv4w+nT5Z7HdqDrNV8wRoyjF4umiTG02QkqLmUV7TM="
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Match cron failed");
+      alert(`Match cron completed: ${data.message}\nPairs: ${data.pairs}\nTotal signups: ${data.totalSignups}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Time logic
   const eleven = new Date(now);
   eleven.setHours(11, 0, 0, 0);
@@ -161,7 +183,18 @@ export default function Home() {
         {error && <div className="text-red-600 text-sm text-center">{error}</div>}
         {match !== null && (
           match ? (
-            <div className="text-green-700 text-xl font-semibold">You are matched with {match}!</div>
+            <div className="text-green-700 text-xl font-semibold">
+              {Array.isArray(match) ? (
+                <div>
+                  <div>You're matched with:</div>
+                  <div className="text-lg mt-1">
+                    {match.join(' & ')}
+                  </div>
+                </div>
+              ) : (
+                `You're matched with ${match}!`
+              )}
+            </div>
           ) : (
             <div className="text-gray-600 text-lg">No match yet. Please check back later.</div>
           )
@@ -217,6 +250,18 @@ export default function Home() {
     >
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 flex flex-col items-center gap-6 border border-blue-100">
         {content}
+        
+        {/* Temporary test button - remove in production */}
+        <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+          <button
+            onClick={testMatchCron}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg py-2 transition-colors text-sm"
+            disabled={loading}
+          >
+            {loading ? "Testing..." : "🧪 Test Match Cron"}
+          </button>
+          <p className="text-xs text-gray-500 text-center mt-1">Remove this button in production</p>
+        </div>
       </div>
       <footer className="mt-8 text-gray-400 text-xs text-center">
         &copy; {new Date().getFullYear()} Jason Zhu

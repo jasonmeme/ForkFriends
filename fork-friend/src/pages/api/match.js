@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { supabase } from "@/lib/supabase";
 
 export default async function handler(req, res) {
   // Only allow POST requests
@@ -19,13 +14,17 @@ export default async function handler(req, res) {
 
   try {
     // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
     
     // Get all signups for today
     const { data: signups, error: fetchError } = await supabase
-      .from('signups')
+      .from('daily_signups')
       .select('name')
-      .eq('date', today);
+      .eq('date', todayStr);
 
     if (fetchError) {
       console.error('Error fetching signups:', fetchError);
@@ -39,21 +38,51 @@ export default async function handler(req, res) {
     // Shuffle the signups array
     const shuffled = [...signups].sort(() => Math.random() - 0.5);
     
-    // Create pairs (if odd number, last person gets no match)
-    const pairs = [];
-    for (let i = 0; i < shuffled.length - 1; i += 2) {
-      pairs.push({
-        person1: shuffled[i].name,
-        person2: shuffled[i + 1].name,
-        date: today
+    // Create groups: pairs of 2, and if odd number, make the last group of 3
+    const groups = [];
+    let i = 0;
+    
+    // If we have an odd number of people, we'll make the last group of 3
+    const totalPeople = shuffled.length;
+    const pairsCount = Math.floor(totalPeople / 2);
+    const hasOddGroup = totalPeople % 2 === 1;
+    
+    // Create regular pairs
+    for (i = 0; i < pairsCount - (hasOddGroup ? 1 : 0); i++) {
+      groups.push({
+        person1: shuffled[i * 2].name,
+        person2: shuffled[i * 2 + 1].name,
+        person3: null,
+        date: todayStr
+      });
+    }
+    
+    // Handle the last group (could be 2 or 3 people)
+    if (hasOddGroup) {
+      // Last group of 3 people
+      const lastIndex = pairsCount - 1;
+      groups.push({
+        person1: shuffled[lastIndex * 2].name,
+        person2: shuffled[lastIndex * 2 + 1].name,
+        person3: shuffled[lastIndex * 2 + 2].name,
+        date: todayStr
+      });
+    } else if (pairsCount > 0) {
+      // Last group of 2 people
+      const lastIndex = pairsCount - 1;
+      groups.push({
+        person1: shuffled[lastIndex * 2].name,
+        person2: shuffled[lastIndex * 2 + 1].name,
+        person3: null,
+        date: todayStr
       });
     }
 
-    // Insert matches into the database
-    if (pairs.length > 0) {
+    // Insert matches into the matches table
+    if (groups.length > 0) {
       const { error: insertError } = await supabase
         .from('matches')
-        .insert(pairs);
+        .insert(groups);
 
       if (insertError) {
         console.error('Error inserting matches:', insertError);
@@ -61,25 +90,30 @@ export default async function handler(req, res) {
       }
     }
 
-    // Handle the case where there's an odd number of people
-    if (shuffled.length % 2 === 1) {
-      const { error: noMatchError } = await supabase
-        .from('matches')
-        .insert({
-          person1: shuffled[shuffled.length - 1].name,
-          person2: null, // No match
-          date: today
-        });
+    // Update the matched status for all users in daily_signups
+    const allNames = shuffled.map(signup => signup.name);
+    if (allNames.length > 0) {
+      const { error: updateError } = await supabase
+        .from('daily_signups')
+        .update({ matched: true })
+        .eq('date', todayStr)
+        .in('name', allNames);
 
-      if (noMatchError) {
-        console.error('Error inserting no-match record:', noMatchError);
+      if (updateError) {
+        console.error('Error updating matched status:', updateError);
+        // Don't return error here as matches were already created
       }
     }
 
-    console.log(`Successfully matched ${pairs.length} pairs for ${today}`);
+    const groupsOf3 = hasOddGroup ? 1 : 0;
+    const groupsOf2 = groups.length - groupsOf3;
+    
+    console.log(`Successfully created ${groups.length} groups for ${todayStr} (${groupsOf2} pairs, ${groupsOf3} group of 3)`);
     return res.status(200).json({ 
       message: 'Matching completed',
-      pairs: pairs.length,
+      totalGroups: groups.length,
+      groupsOf2: groupsOf2,
+      groupsOf3: groupsOf3,
       totalSignups: shuffled.length
     });
 
