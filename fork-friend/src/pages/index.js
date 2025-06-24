@@ -147,8 +147,8 @@ export default function Home() {
     // Signed up, before 11am
     content = (
       <div className="flex flex-col items-center gap-4">
-        <h1 className="text-2xl font-bold text-green-700 text-center">You're in for today!</h1>
-        <p className="text-gray-600 text-center">We'll match you with a lunch buddy at 11 AM.</p>
+        <h1 className="text-2xl font-bold text-green-700 text-center">You are in for today!</h1>
+        <p className="text-gray-600 text-center">We will match you with a lunch buddy at 11 AM.</p>
         <div className="text-blue-700 text-lg font-mono">Matching in: <span className="font-bold">{countdown}</span></div>
       </div>
     );
@@ -161,7 +161,7 @@ export default function Home() {
         {error && <div className="text-red-600 text-sm text-center">{error}</div>}
         {match !== null && (
           match ? (
-            <div className="text-green-700 text-xl font-semibold">You're matched with {match}!</div>
+            <div className="text-green-700 text-xl font-semibold">You are matched with {match}!</div>
           ) : (
             <div className="text-gray-600 text-lg">No match yet. Please check back later.</div>
           )
