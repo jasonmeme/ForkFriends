@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 const SIGNUP_KEY = "forkfriends_signup";
 const NAME_KEY = "forkfriends_name";
 const MATCH_KEY = "forkfriends_match";
+const MATCH_FETCHED_KEY = "forkfriends_match_fetched";
 
 function getTodayStr() {
   const today = new Date();
@@ -42,15 +43,18 @@ export default function Home() {
   const [match, setMatch] = useState(null);
   const [countdown, setCountdown] = useState("");
   const [now, setNow] = useState(new Date());
+  const [matchFetched, setMatchFetched] = useState(false);
   const intervalRef = useRef();
 
   // On mount, check localStorage for signup and name
   useEffect(() => {
     const storedDate = localStorage.getItem(SIGNUP_KEY);
     const storedName = localStorage.getItem(NAME_KEY);
+    const fetchedToday = localStorage.getItem(MATCH_FETCHED_KEY) === getTodayStr();
     if (storedDate === getTodayStr() && storedName) {
       setSignedUp(true);
       setName(storedName);
+      setMatchFetched(fetchedToday);
     }
     setNow(new Date());
   }, []);
@@ -61,7 +65,7 @@ export default function Home() {
       const now = new Date();
       setNow(now);
       const eleven = new Date(now);
-      eleven.setHours(19, 0, 0, 0);
+      eleven.setHours(11, 0, 0, 0);
       if (now < eleven) {
         const diff = eleven - now;
         const h = Math.floor(diff / 1000 / 60 / 60);
@@ -77,15 +81,15 @@ export default function Home() {
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  // After 11am, if signed up, fetch match
+  // After 11am, if signed up, fetch match (only once)
   useEffect(() => {
     const eleven = new Date(now);
     eleven.setHours(11, 0, 0, 0);
-    if (signedUp && now >= eleven && name) {
+    if (signedUp && now >= eleven && name && !matchFetched) {
       fetchMatch(name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedUp, now, name]);
+  }, [signedUp, now, name, matchFetched]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -125,6 +129,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not fetch match");
       setMatch(data.match);
+      setMatchFetched(true);
+      localStorage.setItem(MATCH_FETCHED_KEY, getTodayStr());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,8 +165,7 @@ export default function Home() {
   eleven.setHours(11, 0, 0, 0);
   const seven = new Date(now);
   seven.setHours(7, 0, 0, 0);
-  // const after11 = now >= eleven;
-  const after11 = false;
+  const after11 = now >= eleven;
   const before7 = now < seven;
 
   // UI logic
@@ -183,29 +188,20 @@ export default function Home() {
         {error && <div className="text-red-600 text-sm text-center">{error}</div>}
         {match !== null && (
           match ? (
-            <div className="text-green-700 text-xl font-semibold">
-              {Array.isArray(match) ? (
-                <div>
-                  <div>You are matched with:</div>
-                  <div className="text-lg mt-1">
-                    {match.join(' & ')}
-                  </div>
+            <div className="text-center">
+              <div className="bg-green-50 border border-green-200 rounded-lg px-6 py-4">
+                <div className="text-green-800 text-lg font-medium">
+                  {Array.isArray(match) ? match.join(' & ') : match}
                 </div>
-              ) : (
-                `You're matched with ${match}!`
-              )}
+              </div>
             </div>
           ) : (
-            <div className="text-gray-600 text-lg">No match yet. Please check back later.</div>
+            <div className="text-center">
+              <div className="text-gray-600 text-lg mb-2">No match yet.</div>
+              <div className="text-gray-500 text-sm">Please check back later.</div>
+            </div>
           )
         )}
-        <button
-          onClick={() => fetchMatch(name)}
-          className="mt-2 text-blue-600 hover:underline text-sm"
-          disabled={loading}
-        >
-          Refresh
-        </button>
       </div>
     );
   } else if (!signedUp && after11) {
@@ -250,9 +246,9 @@ export default function Home() {
     >
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 flex flex-col items-center gap-6 border border-blue-100">
         {content}
-        
-        {/* Temporary test button - remove in production */}
-        <div className="mt-4 pt-4 border-t border-gray-200 w-full">
+      </div>
+      {/* Temporary test button - remove in production */}
+      {/* <div className="mt-4 pt-4 border-t border-gray-200 w-full">
           <button
             onClick={testMatchCron}
             className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg py-2 transition-colors text-sm"
@@ -261,8 +257,7 @@ export default function Home() {
             {loading ? "Testing..." : "🧪 Test Match Cron"}
           </button>
           <p className="text-xs text-gray-500 text-center mt-1">Remove this button in production</p>
-        </div>
-      </div>
+        </div> */}
       <footer className="mt-8 text-gray-400 text-xs text-center">
         &copy; {new Date().getFullYear()} Jason Zhu
       </footer>
