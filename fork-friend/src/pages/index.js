@@ -61,7 +61,7 @@ export default function Home() {
       const now = new Date();
       setNow(now);
       const eleven = new Date(now);
-      eleven.setHours(11, 0, 0, 0);
+      eleven.setHours(19, 0, 0, 0);
       if (now < eleven) {
         const diff = eleven - now;
         const h = Math.floor(diff / 1000 / 60 / 60);
@@ -137,7 +137,8 @@ export default function Home() {
   eleven.setHours(11, 0, 0, 0);
   const seven = new Date(now);
   seven.setHours(7, 0, 0, 0);
-  const after11 = now >= eleven;
+  // const after11 = now >= eleven;
+  const after11 = false;
   const before7 = now < seven;
 
   // UI logic
@@ -186,11 +187,11 @@ export default function Home() {
     // Not signed up, before 11am
     content = (
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">Fork Friends</h1>
+        <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">Fork Friends 🍽️</h1>
         <p className="text-gray-600 text-center mb-4">Sign up to get matched for lunch today at Northeast Delta Dental!</p>
         <input
           type="text"
-          className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg"
+          className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg text-gray-900 bg-white"
           placeholder="Enter your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -218,7 +219,7 @@ export default function Home() {
         {content}
       </div>
       <footer className="mt-8 text-gray-400 text-xs text-center">
-        &copy; {new Date().getFullYear()} Northeast Delta Dental
+        &copy; {new Date().getFullYear()} Jason Zhu
       </footer>
     </div>
   );
