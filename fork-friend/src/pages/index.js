@@ -186,7 +186,7 @@ export default function Home() {
             <div className="text-green-700 text-xl font-semibold">
               {Array.isArray(match) ? (
                 <div>
-                  <div>You're matched with:</div>
+                  <div>You are matched with:</div>
                   <div className="text-lg mt-1">
                     {match.join(' & ')}
                   </div>
