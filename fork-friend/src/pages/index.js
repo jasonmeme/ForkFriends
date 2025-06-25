@@ -286,7 +286,7 @@ export default function Home() {
         <input
           type="text"
           className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg text-gray-900 bg-white"
-          placeholder="Enter your name"
+          placeholder="Enter your first and last name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={loading}
