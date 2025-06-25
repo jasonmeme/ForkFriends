@@ -256,6 +256,9 @@ export default function Home() {
                   {Array.isArray(match) ? match.join(' & ') : match}
                 </div>
               </div>
+              <div className="mt-4 text-blue-600 font-medium">
+                Message them on Webex!
+              </div>
             </div>
           ) : (
             <div className="text-center">
@@ -278,7 +281,7 @@ export default function Home() {
     // Not signed up, before 11am
     content = (
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">Fork Friends 🍽️</h1>
+        <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">🍽️ Fork Friend</h1>
         <p className="text-gray-600 text-center mb-4">Sign up to get matched for lunch today at Northeast Delta Dental!</p>
         <input
           type="text"
