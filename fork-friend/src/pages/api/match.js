@@ -39,42 +39,36 @@ export default async function handler(req, res) {
     
     // Create groups: pairs of 2, and if odd number, make the last group of 3
     const groups = [];
-    let i = 0;
-    
-    // If we have an odd number of people, we'll make the last group of 3
     const totalPeople = shuffled.length;
-    const pairsCount = Math.floor(totalPeople / 2);
-    const hasOddGroup = totalPeople % 2 === 1;
-    
-    // Create regular pairs
-    for (i = 0; i < pairsCount - (hasOddGroup ? 1 : 0); i++) {
+    let i = 0;
+
+    if (totalPeople % 2 === 1) {
+      // Odd number: last group is 3
+      for (i = 0; i < totalPeople - 3; i += 2) {
+        groups.push({
+          person1: shuffled[i].name,
+          person2: shuffled[i + 1].name,
+          person3: null,
+          date: todayStr
+        });
+      }
+      // Last group of 3
       groups.push({
-        person1: shuffled[i * 2].name,
-        person2: shuffled[i * 2 + 1].name,
-        person3: null,
+        person1: shuffled[totalPeople - 3].name,
+        person2: shuffled[totalPeople - 2].name,
+        person3: shuffled[totalPeople - 1].name,
         date: todayStr
       });
-    }
-    
-    // Handle the last group (could be 2 or 3 people)
-    if (hasOddGroup) {
-      // Last group of 3 people
-      const lastIndex = pairsCount - 1;
-      groups.push({
-        person1: shuffled[lastIndex * 2].name,
-        person2: shuffled[lastIndex * 2 + 1].name,
-        person3: shuffled[lastIndex * 2 + 2].name,
-        date: todayStr
-      });
-    } else if (pairsCount > 0) {
-      // Last group of 2 people
-      const lastIndex = pairsCount - 1;
-      groups.push({
-        person1: shuffled[lastIndex * 2].name,
-        person2: shuffled[lastIndex * 2 + 1].name,
-        person3: null,
-        date: todayStr
-      });
+    } else {
+      // Even number: all groups are pairs
+      for (i = 0; i < totalPeople; i += 2) {
+        groups.push({
+          person1: shuffled[i].name,
+          person2: shuffled[i + 1].name,
+          person3: null,
+          date: todayStr
+        });
+      }
     }
 
     // Insert matches into the matches table
@@ -104,8 +98,8 @@ export default async function handler(req, res) {
       }
     }
 
-    const groupsOf3 = hasOddGroup ? 1 : 0;
-    const groupsOf2 = groups.length - groupsOf3;
+    const groupsOf3 = groups.length - totalPeople / 2;
+    const groupsOf2 = totalPeople / 2 - groupsOf3;
     
     console.log(`Successfully created ${groups.length} groups for ${todayStr} (${groupsOf2} pairs, ${groupsOf3} group of 3)`);
     return res.status(200).json({ 
