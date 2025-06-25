@@ -35,6 +35,14 @@ function getNext11AM() {
   return next;
 }
 
+function getBufferEndTime() {
+  const eleven = new Date();
+  eleven.setHours(11, 0, 0, 0);
+  const bufferEnd = new Date(eleven);
+  bufferEnd.setMinutes(bufferEnd.getMinutes() + 10); // 10 minute buffer
+  return bufferEnd;
+}
+
 export default function Home() {
   const [name, setName] = useState("");
   const [signedUp, setSignedUp] = useState(false);
@@ -44,7 +52,9 @@ export default function Home() {
   const [countdown, setCountdown] = useState("");
   const [now, setNow] = useState(new Date());
   const [matchFetched, setMatchFetched] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
   const intervalRef = useRef();
+  const matchPollingRef = useRef();
 
   // On mount, check localStorage for signup and name
   useEffect(() => {
@@ -85,11 +95,45 @@ export default function Home() {
   useEffect(() => {
     const eleven = new Date(now);
     eleven.setHours(11, 0, 0, 0);
-    if (signedUp && now >= eleven && name && !matchFetched) {
-      fetchMatch(name);
+    const bufferEnd = getBufferEndTime();
+    
+    if (signedUp && now >= eleven && name && !matchFetched && !isMatching) {
+      setIsMatching(true);
+      startMatchPolling();
     }
+    
+    // Stop polling if we're past the buffer time
+    if (isMatching && now > bufferEnd) {
+      stopMatchPolling();
+      setIsMatching(false);
+    }
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedUp, now, name, matchFetched]);
+  }, [signedUp, now, name, matchFetched, isMatching]);
+
+  const startMatchPolling = () => {
+    // Initial fetch
+    fetchMatch(name);
+    
+    // Set up polling every 5 seconds
+    matchPollingRef.current = setInterval(() => {
+      fetchMatch(name);
+    }, 5000);
+  };
+
+  const stopMatchPolling = () => {
+    if (matchPollingRef.current) {
+      clearInterval(matchPollingRef.current);
+      matchPollingRef.current = null;
+    }
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopMatchPolling();
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,9 +172,16 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not fetch match");
-      setMatch(data.match);
-      setMatchFetched(true);
-      localStorage.setItem(MATCH_FETCHED_KEY, getTodayStr());
+      
+      if (data.match !== null) {
+        // Match found, stop polling
+        setMatch(data.match);
+        setMatchFetched(true);
+        setIsMatching(false);
+        stopMatchPolling();
+        localStorage.setItem(MATCH_FETCHED_KEY, getTodayStr());
+      }
+      // If match is null, keep polling
     } catch (err) {
       setError(err.message);
     } finally {
@@ -165,8 +216,10 @@ export default function Home() {
   eleven.setHours(11, 0, 0, 0);
   const seven = new Date(now);
   seven.setHours(7, 0, 0, 0);
+  const bufferEnd = getBufferEndTime();
   const after11 = now >= eleven;
   const before7 = now < seven;
+  const inBufferPeriod = after11 && now <= bufferEnd;
 
   // UI logic
   let content;
@@ -177,6 +230,15 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-green-700 text-center">You are in for today!</h1>
         <p className="text-gray-600 text-center">We will match you with a lunch buddy at 11 AM.</p>
         <div className="text-blue-700 text-lg font-mono">Matching in: <span className="font-bold">{countdown}</span></div>
+      </div>
+    );
+  } else if (signedUp && after11 && isMatching) {
+    // Signed up, after 11am, actively matching
+    content = (
+      <div className="flex flex-col items-center gap-4">
+        <h1 className="text-2xl font-bold text-blue-700 text-center">Finding your match...</h1>
+        <p className="text-gray-600 text-center">Please wait while we match you with lunch buddies.</p>
+        <div className="text-blue-700 text-lg font-mono">Checking every 5 seconds...</div>
       </div>
     );
   } else if (signedUp && after11) {
@@ -197,8 +259,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center">
-              <div className="text-gray-600 text-lg mb-2">No match yet.</div>
-              <div className="text-gray-500 text-sm">Please check back later.</div>
+              <div className="text-gray-600 text-lg mb-2">No match found.</div>
+              <div className="text-gray-500 text-sm">Please check back tomorrow.</div>
             </div>
           )
         )}
