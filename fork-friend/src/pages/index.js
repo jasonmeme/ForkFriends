@@ -27,7 +27,7 @@ function getTodayStr() {
 function getNext11AM() {
   const now = new Date();
   const next = new Date(now);
-  next.setHours(11, 0, 0, 0);
+  next.sethours(16, 0, 0, 0);
   if (now > next) {
     // Already past 11am today
     next.setDate(next.getDate() + 1);
@@ -37,7 +37,7 @@ function getNext11AM() {
 
 function getBufferEndTime() {
   const eleven = new Date();
-  eleven.setHours(11, 0, 0, 0);
+  eleven.sethours(16, 0, 0, 0);
   const bufferEnd = new Date(eleven);
   bufferEnd.setMinutes(bufferEnd.getMinutes() + 10); // 10 minute buffer
   return bufferEnd;
@@ -75,7 +75,7 @@ export default function Home() {
       const now = new Date();
       setNow(now);
       const eleven = new Date(now);
-      eleven.setHours(11, 0, 0, 0);
+      eleven.sethours(16, 0, 0, 0);
       if (now < eleven) {
         const diff = eleven - now;
         const h = Math.floor(diff / 1000 / 60 / 60);
@@ -94,7 +94,7 @@ export default function Home() {
   // After 11am, if signed up, fetch match (only once)
   useEffect(() => {
     const eleven = new Date(now);
-    eleven.setHours(11, 0, 0, 0);
+    eleven.sethours(16, 0, 0, 0);
     const bufferEnd = getBufferEndTime();
     
     if (signedUp && now >= eleven && name && !matchFetched && !isMatching) {
@@ -213,7 +213,7 @@ export default function Home() {
 
   // Time logic
   const eleven = new Date(now);
-  eleven.setHours(11, 0, 0, 0);
+  eleven.sethours(16, 0, 0, 0);
   const seven = new Date(now);
   seven.setHours(7, 0, 0, 0);
   const bufferEnd = getBufferEndTime();
