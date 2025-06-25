@@ -5,6 +5,7 @@ export default function Document() {
     <Html lang="en">
       <Head>
         <title>Fork Friend</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </Head>
       <body className="antialiased">
         <Main />
