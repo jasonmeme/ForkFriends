@@ -24,6 +24,35 @@ function getTodayStr() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function getTomorrowStr() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const yyyy = tomorrow.getFullYear();
+  const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const dd = String(tomorrow.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getSignupTargetDate() {
+  const now = new Date();
+  const eleven = new Date(now);
+  eleven.setHours(16, 0, 0, 0); // 11 AM converted to 4 PM for testing
+  
+  // If it's after 11 AM, signup for tomorrow
+  if (now >= eleven) {
+    return getTomorrowStr();
+  }
+  // Otherwise signup for today
+  return getTodayStr();
+}
+
+function isSigningUpForTomorrow() {
+  const now = new Date();
+  const eleven = new Date(now);
+  eleven.setHours(16, 0, 0, 0); // 11 AM converted to 4 PM for testing
+  return now >= eleven;
+}
+
 function getNext11AM() {
   const now = new Date();
   const next = new Date(now);
@@ -60,8 +89,10 @@ export default function Home() {
   useEffect(() => {
     const storedDate = localStorage.getItem(SIGNUP_KEY);
     const storedName = localStorage.getItem(NAME_KEY);
+    const targetDate = getSignupTargetDate();
     const fetchedToday = localStorage.getItem(MATCH_FETCHED_KEY) === getTodayStr();
-    if (storedDate === getTodayStr() && storedName) {
+    
+    if (storedDate === targetDate && storedName) {
       setSignedUp(true);
       setName(storedName);
       setMatchFetched(fetchedToday);
@@ -151,7 +182,7 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Signup failed");
-      localStorage.setItem(SIGNUP_KEY, getTodayStr());
+      localStorage.setItem(SIGNUP_KEY, getSignupTargetDate());
       localStorage.setItem(NAME_KEY, name);
       setSignedUp(true);
     } catch (err) {
@@ -220,16 +251,28 @@ export default function Home() {
   const after11 = now >= eleven;
   const before7 = now < seven;
   const inBufferPeriod = after11 && now <= bufferEnd;
+  const signingUpForTomorrow = isSigningUpForTomorrow();
+  const isAfterMidnight = now.getHours() < 7; // After midnight but before 7 AM
 
   // UI logic
   let content;
   if (signedUp && !after11) {
     // Signed up, before 11am
+    const isSignedUpForToday = localStorage.getItem(SIGNUP_KEY) === getTodayStr();
+    const waitingMessage = isSignedUpForToday 
+      ? "You are in for today!"
+      : "You are in for tomorrow!";
+    const matchingMessage = isSignedUpForToday
+      ? "We will match you with a lunch buddy at 11 AM."
+      : "We will match you with a lunch buddy at 11 AM tomorrow.";
+    
     content = (
       <div className="flex flex-col items-center gap-4">
-        <h1 className="text-2xl font-bold text-green-700 text-center">You are in for today!</h1>
-        <p className="text-gray-600 text-center">We will match you with a lunch buddy at 11 AM.</p>
-        <div className="text-blue-700 text-lg font-mono">Matching in: <span className="font-bold">{countdown}</span></div>
+        <h1 className="text-2xl font-bold text-green-700 text-center">{waitingMessage}</h1>
+        <p className="text-gray-600 text-center">{matchingMessage}</p>
+        {isSignedUpForToday && (
+          <div className="text-blue-700 text-lg font-mono">Matching in: <span className="font-bold">{countdown}</span></div>
+        )}
       </div>
     );
   } else if (signedUp && after11 && isMatching) {
@@ -269,16 +312,40 @@ export default function Home() {
         )}
       </div>
     );
-  } else if (!signedUp && after11) {
-    // Not signed up, after 11am
+  } else if (!signedUp && signingUpForTomorrow) {
+    // Not signed up, after 11am - signup for tomorrow
+    const timeMessage = isAfterMidnight && now.getHours() < 7 
+      ? "Sign up for today's lunch matching!"
+      : isAfterMidnight 
+        ? "Sign up for today's lunch matching at 11 AM!"
+        : "Sign up for tomorrow's lunch matching!";
+    
     content = (
-      <div className="flex flex-col items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-700 text-center">Signups are closed</h1>
-        <p className="text-gray-600 text-center">Come back tomorrow at <span className="font-semibold">7:00 AM</span> to enter your name again.</p>
-      </div>
+      <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+        <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">🍽️ Fork Friend</h1>
+        <p className="text-gray-600 text-center mb-4">{timeMessage}</p>
+        <input
+          type="text"
+          className="border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg text-gray-900 bg-white"
+          placeholder="Enter your first and last name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={loading}
+          maxLength={50}
+          autoFocus
+        />
+        {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 transition-colors text-lg disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={loading}
+        >
+          {loading ? "Signing you up..." : "Sign Up"}
+        </button>
+      </form>
     );
   } else {
-    // Not signed up, before 11am
+    // Not signed up, before 11am - signup for today
     content = (
       <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
         <h1 className="text-3xl font-bold text-blue-700 mb-2 text-center">🍽️ Fork Friend</h1>
